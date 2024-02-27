@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.5.1/apexcharts.min.js"></script>
+</head>
+<body>
+
+<table width="100%">
+	<tr>
+		<td width="50%">Index chart: <select id="index_names"></select>
+			Aggregation duration: <select id="aggr_dura">
+									<option value="1800000">30 minutes</option>
+									<option value="600000">10 minutes</option>
+									<option value="300000">5 minutes</option>
+									<option value="60000">1 minute</option>
+									<option value="10000">10 seconds</option>
+									<option value="5000">5 seconds</option>
+									<option value="1000">1 second</option>
+									<option value="500">500 ms</option>
+									<option value="200">200 ms</option>
+									<option value="100">100 ms</option>
+								  </select>
+ 			<button id="button_refresh">Refresh</button>
+		</td>
+		<td width="50%" rowspan="2"><div id="chart"></div></td>
+	</tr>
+	<tr>
+		<td>
+			<iframe width="100%" id="output"></iframe>
+		</td>
+		
+	</tr>
+</table>
+    
+<script>
+
+var options = {
+        series: [],
+        chart: {
+        type: 'candlestick',
+        height: 350,
+        animations: { enabled: false }
+      },
+      title: {
+        text: 'Chart',
+        align: 'left'
+      },
+      xaxis: {
+        type: 'datetime',
+        labels: { datetimeUTC: false }
+      },
+      yaxis: {
+        tooltip: {
+          enabled: true
+        }
+      }
+    };
+
+// empty ApexChart render
+var chart = new ApexCharts(document.querySelector("#chart"), options);
+chart.render();
+
+var currentIndex = "";
+
+// initialize index select options
+$.getJSON("/indexnames", function(result) {
+	$('#output').attr("srcdoc", JSON.stringify(result));
+	$('#index_names').empty();
+	$('#index_names').append('<option value="">Select...</option>');
+    for (var i = 0; i < result.length; i++) {
+    	$('#index_names').append('<option value="' + result[i].id + '">' + result[i].name + '</option>');
+    }
+});
+
+function retrieveData(arg) {
+	$.getJSON("/data/" + arg + "/" + $('#aggr_dura').val(), function(result) {
+		$('#output').attr("srcdoc", JSON.stringify(result));
+		currentIndex = arg;
+		chart.updateSeries([{ "data": result }]);
+	});	
+}
+
+// handle index selection change
+$('#index_names').on('change', function() {
+	retrieveData(this.value);
+});
+
+//handle index selection change
+$('#aggr_dura').on('change', function() {
+	retrieveData(currentIndex);
+});
+
+// handle refresh button
+$('#button_refresh').on('click', function() {
+	retrieveData(currentIndex);
+});
+
+// auto refresh timer if any of index is selected
+// setInterval(function() {
+//	if(currentIndex != "") retrieveData(currentIndex);	
+//}, 3000);
+
+</script>
+
+</body>
+</html>
